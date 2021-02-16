@@ -261,14 +261,20 @@ def main():
     The main function of the module.
     Processes the entered data: user coordinates and year.
     Throws out errors at invalid inputs.
-    2000Invokes further leading functions of the render_html, evaluate_movie module
+    Invokes further leading functions of the render_html, evaluate_movie module
     """
     g_data = get_data('locations.txt')
     user_year = input('Please enter a year you would like to have a map for: ')
     if not user_year.isdigit() or int(user_year) < 1947:
         raise ValueError('Invalid year')
+
     cords = input('Please enter your location in latitude-longitude order '
-                  '(example -> 49.83826 24.02324): ').strip().split(" ")
+                  '(example -> 49.83826, 24.02324): ').strip().split(", ")
+    try:
+        for el in cords:
+            float(el)
+    except ValueError:
+        raise ValueError('Invalid input')
 
     # test_year = '1998'
     # test_cords = [49.83826, 24.02324]
