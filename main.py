@@ -1,3 +1,17 @@
+"""
+The module creates a web map (html page).
+The web map displays information about the locations of films that were shot
+in a given year. Location information is in the locations.list file.
+The user indicates for the films for which year he wants to build a map and
+his location as latitude and longitude (e.g. 49.83826,24.02324), and as a
+result receives an HTML file.
+
+The map has three layers (label layer, main layer).
+The map should show no more than 10 labels of the nearest filming locations.
+Link to github:
+https://github.com/akerni/movie_map
+"""
+
 import folium
 from folium import plugins
 from geopy.geocoders import Nominatim
@@ -10,7 +24,9 @@ import json
 
 def get_data(path: str) -> dict:
     """
-    Function reads the ddta from 
+    Function reads the ddta from the source file.
+    Reads data from the locations.txt file and returns it as:
+    {year: {movie_name: [(location, description, ...], ...}}
     """
     file_raw = [x.strip() for x in open('{}'.format(path), 'r', encoding='utf-8').readlines()]
     file_raw = file_raw[file_raw.index('==============') + 1:]
@@ -47,8 +63,19 @@ def print_data(data: dict):
 
 
 def evaluate_movie(data: dict, user_year: str, user_cords: list):
+    """
+    The function finds the closest to the user 10 places where movies wer
+    shot. Returns the movie dictionary as:
+    - [(location, (length, latitude), movie_name, description), ...]
+    """
     def get_cords(place: str):
-
+        """
+        The function is named location and returns a tuple with location
+        coordinates. If no coordinates are found for the full name of the
+        location, then there is a narrower search for it
+        Example: 'Melrose Lumber, Ossining, New York, USA' - not found,
+        search for 'Ossining, New York, USA'
+        """
         place_location = None
         geolocator = Nominatim(user_agent="user_agent")
         geocode = RateLimiter(geolocator.geocode, min_delay_seconds=5)
@@ -107,16 +134,27 @@ def evaluate_movie(data: dict, user_year: str, user_cords: list):
 
 
 def render_html(data: list, user_cords: list, user_year: str):
+    """
+    Function generates the HTML file with the list of the movies found.
+    """
     print('Creating map...')
 
     def get_local(_cords: list):
+        """
+        The function gets the coordinates of the location and returns its
+        full name.
+        """
         geolocator = Nominatim(user_agent="user_agent")
         location = geolocator.reverse("{}, {}".format(_cords[0], _cords[1]))
         return location.address
 
     def country_count(lst: list) -> dict:
+        """
+        The function returns the number of locations that were captured in a
+        particular country. Returns data as a dictionary, where
+        {country_name: number_of_shoots, ...}
+        """
         result = {}
-
         for tpl in lst:
             curr_country = tpl[0].split(", ")[-1]
             if curr_country in result.keys():
@@ -129,6 +167,10 @@ def render_html(data: list, user_cords: list, user_year: str):
         return result
 
     def update_json(dct: dict):
+        """
+        The function creates a new .json file with updated data on the number
+        of shots in a particular country.
+        """
         data_json = json.load(open('world.json', 'r', encoding='utf-8-sig'))
         check_dct = dct.copy()
 
@@ -215,6 +257,12 @@ def render_html(data: list, user_cords: list, user_year: str):
 
 
 def main():
+    """
+    The main function of the module.
+    Processes the entered data: user coordinates and year.
+    Throws out errors at invalid inputs.
+    2000Invokes further leading functions of the render_html, evaluate_movie module
+    """
     g_data = get_data('locations.txt')
     user_year = input('Please enter a year you would like to have a map for: ')
     if not user_year.isdigit() or int(user_year) < 1947:
